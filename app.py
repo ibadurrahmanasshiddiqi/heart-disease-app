@@ -11,17 +11,10 @@ import plotly.graph_objects as go
 
 # Set page configuration
 st.set_page_config(
-    page_title="Heart Disease Prediction",
+    page_title="Prediksi Penyakit Jantung",
     page_icon="❤️",
     layout="wide"
 )
-
-# Title and description
-st.title("❤️ Heart Disease Prediction System")
-st.markdown("""
-This application predicts the likelihood of heart disease based on various medical parameters.
-Please enter the patient's information in the sidebar to get a prediction.
-""")
 
 # Load and prepare data
 @st.cache_data
@@ -62,141 +55,527 @@ def load_and_prepare_data():
 # Load data and model
 try:
     model, scaler, pca, X, y, X_test, y_test, y_pred, accuracy, heart_data = load_and_prepare_data()
-    st.success("✅ Model loaded successfully!")
 except Exception as e:
     st.error(f"Error loading data: {e}")
     st.stop()
 
-# Sidebar for user input
-st.sidebar.header("📋 Patient Information")
-st.sidebar.markdown("Enter the patient's medical parameters:")
+# Sidebar Menu
+st.sidebar.title("🏥 Menu Navigasi")
+menu = st.sidebar.selectbox(
+    "Pilih Menu:",
+    ["🏠 Beranda", "ℹ️ Tentang", "📚 Pengenalan Aplikasi", "⚠️ Faktor Risiko", "🔬 Prediksi Penyakit"]
+)
 
-# Create input fields based on original features
-age = st.sidebar.slider("Age", 20, 100, 50)
-sex = st.sidebar.selectbox("Sex", options=[0, 1], format_func=lambda x: "Female" if x == 0 else "Male")
-cp = st.sidebar.selectbox("Chest Pain Type (cp)", options=[0, 1, 2, 3], 
-                          format_func=lambda x: ["Typical Angina", "Atypical Angina", "Non-anginal Pain", "Asymptomatic"][x])
-trestbps = st.sidebar.slider("Resting Blood Pressure (trestbps)", 80, 200, 120)
-chol = st.sidebar.slider("Serum Cholesterol (chol)", 100, 400, 200)
-fbs = st.sidebar.selectbox("Fasting Blood Sugar > 120 mg/dl (fbs)", options=[0, 1], 
-                           format_func=lambda x: "No" if x == 0 else "Yes")
-restecg = st.sidebar.selectbox("Resting ECG (restecg)", options=[0, 1, 2],
-                               format_func=lambda x: ["Normal", "ST-T Wave Abnormality", "Left Ventricular Hypertrophy"][x])
-thalach = st.sidebar.slider("Maximum Heart Rate (thalach)", 60, 220, 150)
-exang = st.sidebar.selectbox("Exercise Induced Angina (exang)", options=[0, 1],
-                             format_func=lambda x: "No" if x == 0 else "Yes")
-oldpeak = st.sidebar.slider("ST Depression (oldpeak)", 0.0, 6.5, 1.0, 0.1)
-slope = st.sidebar.selectbox("Slope of Peak Exercise ST (slope)", options=[0, 1, 2],
-                             format_func=lambda x: ["Upsloping", "Flat", "Downsloping"][x])
-ca = st.sidebar.selectbox("Number of Major Vessels (ca)", options=[0, 1, 2, 3, 4])
-thal = st.sidebar.selectbox("Thalassemia (thal)", options=[0, 1, 2, 3],
-                            format_func=lambda x: ["Normal", "Fixed Defect", "Reversible Defect", "Unknown"][x])
-
-# Create prediction button
-predict_button = st.sidebar.button("🔍 Predict", use_container_width=True)
-
-# Main content area
-col1, col2 = st.columns([2, 1])
-
-with col1:
-    st.subheader("📊 Model Performance")
+# Menu: Tentang
+if menu == "ℹ️ Tentang":
+    st.title("ℹ️ Tentang Aplikasi")
     
-    # Display accuracy
-    st.metric("Model Accuracy", f"{accuracy:.2%}")
+    st.markdown("""
+    ## Sistem Prediksi Penyakit Jantung
     
-    # Confusion Matrix
-    cm = confusion_matrix(y_test, y_pred)
-    fig_cm = px.imshow(cm, 
-                       labels=dict(x="Predicted", y="Actual", color="Count"),
-                       x=['No Disease', 'Disease'],
-                       y=['No Disease', 'Disease'],
-                       text_auto=True,
-                       color_continuous_scale='Blues')
-    fig_cm.update_layout(title="Confusion Matrix")
-    st.plotly_chart(fig_cm, use_container_width=True)
-
-with col2:
-    st.subheader("📈 Dataset Overview")
+    ### Versi 1.0
     
-    # Target distribution
-    target_counts = heart_data['target'].value_counts()
-    fig_dist = go.Figure(data=[go.Pie(
-        labels=['No Disease', 'Disease'],
-        values=target_counts.values,
-        hole=0.4,
-        marker=dict(colors=['#2ecc71', '#e74c3c'])
-    )])
-    fig_dist.update_layout(title="Target Distribution")
-    st.plotly_chart(fig_dist, use_container_width=True)
+    **Dikembangkan oleh:** Tim Machine Learning
     
-    st.metric("Total Samples", len(heart_data))
-    st.metric("Features", len(heart_data.columns) - 1)
-
-# Prediction section
-if predict_button:
+    **Teknologi yang Digunakan:**
+    - Python 3.x
+    - Streamlit (Framework Web)
+    - Scikit-learn (Machine Learning)
+    - Plotly (Visualisasi Data)
+    - Pandas & NumPy (Pengolahan Data)
+    
+    ### Tentang Dataset
+    Dataset yang digunakan adalah Heart Disease Dataset yang berisi data medis dari pasien dengan berbagai parameter kesehatan jantung.
+    
+    **Jumlah Data:** 303 sampel pasien
+    
+    **Jumlah Fitur:** 13 parameter medis
+    
+    **Target:** Prediksi ada/tidaknya penyakit jantung
+    
+    ### Model Machine Learning
+    - **Algoritma:** Decision Tree Classifier
+    - **Akurasi Model:** {:.2%}
+    - **Preprocessing:** PCA (9 komponen) + Standardisasi
+    
+    ### Disclaimer
+    ⚠️ **Penting:** Aplikasi ini hanya untuk tujuan edukasi dan referensi. Hasil prediksi **TIDAK** dapat menggantikan diagnosis medis profesional. Selalu konsultasikan dengan dokter atau tenaga medis yang berkualifikasi untuk diagnosis dan pengobatan yang akurat.
+    """.format(accuracy))
+    
     st.markdown("---")
-    st.subheader("🎯 Prediction Result")
+    st.info("💡 **Tip:** Gunakan menu sidebar untuk navigasi ke berbagai fitur aplikasi.")
+
+# Menu: Pengenalan Aplikasi
+elif menu == "📚 Pengenalan Aplikasi":
+    st.title("📚 Pengenalan Aplikasi")
     
-    # Prepare input features
-    input_data = pd.DataFrame([[age, sex, cp, trestbps, chol, fbs, restecg, 
-                                thalach, exang, oldpeak, slope, ca, thal]],
-                              columns=X.columns)
+    st.markdown("""
+    ## Apa itu Sistem Prediksi Penyakit Jantung?
     
-    # Transform input
-    input_reduced = pca.transform(input_data)
-    input_scaled = scaler.transform(input_reduced)
+    Sistem Prediksi Penyakit Jantung adalah aplikasi berbasis **Machine Learning** yang dirancang untuk membantu memprediksi kemungkinan seseorang memiliki penyakit jantung berdasarkan parameter medis tertentu.
     
-    # Make prediction
-    prediction = model.predict(input_scaled)[0]
-    prediction_proba = model.predict_proba(input_scaled)[0]
+    ### 🎯 Tujuan Aplikasi
     
-    # Display result
-    col1, col2, col3 = st.columns([1, 2, 1])
+    1. **Deteksi Dini:** Membantu mendeteksi potensi penyakit jantung lebih awal
+    2. **Edukasi:** Memberikan pemahaman tentang faktor-faktor risiko penyakit jantung
+    3. **Kesadaran Kesehatan:** Meningkatkan awareness tentang pentingnya menjaga kesehatan jantung
+    4. **Referensi Medis:** Memberikan informasi tambahan untuk konsultasi dengan dokter
+    
+    ### 🔬 Cara Kerja Aplikasi
+    
+    1. **Input Data:** Pengguna memasukkan 13 parameter medis di sidebar
+    2. **Preprocessing:** Data dinormalisasi dan ditransformasi menggunakan PCA
+    3. **Prediksi:** Model Decision Tree menganalisis data dan memberikan prediksi
+    4. **Hasil:** Aplikasi menampilkan hasil prediksi beserta tingkat kepercayaan dan rekomendasi
+    
+    ### 📊 Parameter yang Dianalisis
+    
+    Aplikasi menganalisis **13 parameter medis** yang meliputi:
+    - Data demografis (usia, jenis kelamin)
+    - Tekanan darah dan kolesterol
+    - Hasil EKG
+    - Detak jantung maksimum
+    - Dan parameter medis lainnya
+    
+    ### ✨ Fitur Utama
+    
+    - 🎨 **Interface User-Friendly:** Mudah digunakan dengan tampilan intuitif
+    - 📊 **Visualisasi Interaktif:** Grafik dan chart yang informatif
+    - 🔍 **Analisis Real-time:** Hasil prediksi langsung setelah input data
+    - 📈 **Dashboard Performa:** Melihat akurasi dan performa model
+    - 💾 **Berbasis Web:** Dapat diakses dari browser tanpa instalasi
+    
+    ### 🚀 Cara Menggunakan
+    
+    1. Pilih menu **"🔬 Prediksi Penyakit"** di sidebar
+    2. Masukkan semua parameter medis pasien
+    3. Klik tombol **"🔍 Prediksi"**
+    4. Lihat hasil prediksi dan rekomendasi
+    
+    """)
+    
+    st.success("✅ Siap menggunakan aplikasi? Pilih menu **'🔬 Prediksi Penyakit'** untuk mulai!")
+
+# Menu: Faktor Risiko
+elif menu == "⚠️ Faktor Risiko":
+    st.title("⚠️ Faktor Risiko Penyakit Jantung")
+    
+    st.markdown("""
+    ## Memahami Faktor Risiko Penyakit Jantung
+    
+    Penyakit jantung adalah salah satu penyebab kematian tertinggi di dunia. Memahami faktor risikonya adalah langkah pertama untuk pencegahan.
+    """)
+    
+    # Faktor Risiko yang Tidak Dapat Diubah
+    st.subheader("🔒 Faktor Risiko yang TIDAK Dapat Diubah")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.markdown("""
+        ### 1. 👤 Usia
+        - Risiko meningkat seiring bertambahnya usia
+        - Pria ≥45 tahun, Wanita ≥55 tahun memiliki risiko lebih tinggi
+        - Pembuluh darah menjadi kurang elastis seiring waktu
+        
+        ### 2. 👨👩 Jenis Kelamin
+        - Pria memiliki risiko lebih tinggi di usia muda
+        - Wanita: risiko meningkat setelah menopause
+        - Hormon estrogen memberikan perlindungan pada wanita
+        """)
     
     with col2:
-        if prediction == 1:
-            st.error("⚠️ HIGH RISK: Heart Disease Detected")
-            st.markdown(f"**Confidence:** {prediction_proba[1]:.1%}")
-            st.markdown("""
-            ### Recommendations:
-            - Consult a cardiologist immediately
-            - Follow prescribed medication
-            - Maintain a healthy lifestyle
-            - Regular monitoring required
-            """)
-        else:
-            st.success("✅ LOW RISK: No Heart Disease Detected")
-            st.markdown(f"**Confidence:** {prediction_proba[0]:.1%}")
-            st.markdown("""
-            ### Recommendations:
-            - Continue healthy lifestyle
-            - Regular check-ups recommended
-            - Maintain balanced diet
-            - Stay physically active
-            """)
+        st.markdown("""
+        ### 3. 🧬 Riwayat Keluarga
+        - Genetik berperan penting
+        - Risiko 2-3x lebih tinggi jika ada riwayat keluarga
+        - Terutama jika anggota keluarga terdiagnosis di usia muda
+        
+        ### 4. 🩸 Ras/Etnis
+        - Beberapa kelompok etnis memiliki risiko lebih tinggi
+        - Faktor genetik dan sosial-ekonomi berperan
+        """)
     
-    # Probability chart
     st.markdown("---")
-    st.subheader("📊 Prediction Probability")
     
-    fig_proba = go.Figure(data=[
-        go.Bar(x=['No Disease', 'Disease'], 
-               y=prediction_proba,
-               marker=dict(color=['#2ecc71', '#e74c3c']),
-               text=[f'{p:.1%}' for p in prediction_proba],
-               textposition='auto')
-    ])
-    fig_proba.update_layout(
-        yaxis_title="Probability",
-        yaxis=dict(range=[0, 1]),
-        showlegend=False
-    )
-    st.plotly_chart(fig_proba, use_container_width=True)
+    # Faktor Risiko yang Dapat Diubah
+    st.subheader("✅ Faktor Risiko yang DAPAT Diubah")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.markdown("""
+        ### 1. 🩺 Tekanan Darah Tinggi (Hipertensi)
+        - **Normal:** <120/80 mmHg
+        - **Tinggi:** ≥140/90 mmHg
+        - Merusak arteri dan jantung
+        - **Pencegahan:** Diet rendah garam, olahraga, obat
+        
+        ### 2. 🧈 Kolesterol Tinggi
+        - **LDL (jahat):** Harus <100 mg/dL
+        - **HDL (baik):** Harus >40 mg/dL (pria), >50 mg/dL (wanita)
+        - Menyebabkan plak di arteri
+        - **Pencegahan:** Diet sehat, olahraga, statin
+        
+        ### 3. 🚬 Merokok
+        - Meningkatkan risiko 2-4x lipat
+        - Merusak pembuluh darah
+        - Menurunkan oksigen dalam darah
+        - **Pencegahan:** BERHENTI merokok sekarang!
+        
+        ### 4. 🍔 Obesitas
+        - **BMI Normal:** 18.5-24.9
+        - **Obesitas:** BMI ≥30
+        - Meningkatkan tekanan darah dan kolesterol
+        - **Pencegahan:** Diet seimbang, olahraga rutin
+        """)
+    
+    with col2:
+        st.markdown("""
+        ### 5. 💤 Diabetes
+        - Merusak pembuluh darah dan saraf
+        - Risiko 2-4x lebih tinggi
+        - **Kontrol:** Gula darah <126 mg/dL (puasa)
+        - **Pencegahan:** Diet, olahraga, obat
+        
+        ### 6. 🏃 Kurang Aktivitas Fisik
+        - Gaya hidup sedenter = risiko tinggi
+        - **Rekomendasi:** 150 menit/minggu aktivitas sedang
+        - Olahraga memperkuat jantung
+        - **Pencegahan:** Jalan kaki, jogging, berenang
+        
+        ### 7. 😰 Stress
+        - Stress kronis merusak jantung
+        - Meningkatkan tekanan darah
+        - **Pencegahan:** Meditasi, yoga, hobi
+        
+        ### 8. 🍺 Alkohol Berlebihan
+        - Meningkatkan tekanan darah
+        - Merusak otot jantung
+        - **Batasan:** Maksimal 1-2 gelas/hari
+        - **Pencegahan:** Kurangi atau hindari alkohol
+        """)
+    
+    st.markdown("---")
+    
+    # Parameter Medis dalam Aplikasi
+    st.subheader("🔬 Parameter Medis dalam Aplikasi Ini")
+    
+    st.markdown("""
+    Aplikasi ini menganalisis 13 parameter medis berikut:
+    
+    | Parameter | Deskripsi | Nilai Normal |
+    |-----------|-----------|--------------|
+    | **Usia** | Usia pasien dalam tahun | 20-100 tahun |
+    | **Jenis Kelamin** | 0 = Wanita, 1 = Pria | - |
+    | **Tipe Nyeri Dada** | 0-3 (dari ringan hingga parah) | 0 = Aman |
+    | **Tekanan Darah** | Tekanan darah saat istirahat | 90-120 mmHg |
+    | **Kolesterol** | Kolesterol serum | <200 mg/dL |
+    | **Gula Darah Puasa** | >120 mg/dL = 1 | <100 mg/dL |
+    | **EKG Istirahat** | Hasil elektrokardiogram | 0 = Normal |
+    | **Detak Jantung Max** | Detak jantung maksimum | 60-100 bpm |
+    | **Angina saat Olahraga** | Nyeri dada saat aktivitas | 0 = Tidak |
+    | **ST Depression** | Depresi ST saat olahraga | 0-2 |
+    | **Slope** | Kemiringan segmen ST | 0-2 |
+    | **Jumlah Pembuluh** | Pembuluh darah mayor (0-3) | 0 = Aman |
+    | **Thalassemia** | Kelainan darah | 1 = Normal |
+    """)
+    
+    st.markdown("---")
+    
+    st.info("""
+    ### 💡 Tips Pencegahan Penyakit Jantung
+    
+    1. ✅ **Makan Sehat:** Konsumsi buah, sayur, biji-bijian, ikan
+    2. ✅ **Olahraga Rutin:** Minimal 30 menit/hari, 5 hari/minggu
+    3. ✅ **Jaga Berat Badan:** Pertahankan BMI normal (18.5-24.9)
+    4. ✅ **Stop Merokok:** Hentikan segera untuk mengurangi risiko
+    5. ✅ **Kurangi Stress:** Meditasi, yoga, atau aktivitas menyenangkan
+    6. ✅ **Cek Kesehatan Rutin:** Periksa tekanan darah dan kolesterol
+    7. ✅ **Tidur Cukup:** 7-9 jam per malam
+    8. ✅ **Batasi Alkohol:** Maksimal 1-2 gelas/hari
+    """)
+
+# Menu: Prediksi Penyakit
+elif menu == "🔬 Prediksi Penyakit":
+    st.title("🔬 Sistem Prediksi Penyakit Jantung")
+    st.markdown("""
+    Masukkan parameter medis pasien di sidebar untuk mendapatkan prediksi risiko penyakit jantung.
+    """)
+    
+    # Sidebar for user input
+    st.sidebar.header("📋 Data Pasien")
+    st.sidebar.markdown("Masukkan parameter medis pasien:")
+    
+    # Create input fields
+    age = st.sidebar.slider("Usia", 20, 100, 50)
+    sex = st.sidebar.selectbox("Jenis Kelamin", options=[0, 1], format_func=lambda x: "Wanita" if x == 0 else "Pria")
+    cp = st.sidebar.selectbox("Tipe Nyeri Dada", options=[0, 1, 2, 3], 
+                              format_func=lambda x: ["Angina Tipikal", "Angina Atipikal", "Nyeri Non-anginal", "Asimtomatik"][x])
+    trestbps = st.sidebar.slider("Tekanan Darah Istirahat (mmHg)", 80, 200, 120)
+    chol = st.sidebar.slider("Kolesterol Serum (mg/dL)", 100, 400, 200)
+    fbs = st.sidebar.selectbox("Gula Darah Puasa > 120 mg/dl", options=[0, 1], 
+                               format_func=lambda x: "Tidak" if x == 0 else "Ya")
+    restecg = st.sidebar.selectbox("Hasil EKG Istirahat", options=[0, 1, 2],
+                                   format_func=lambda x: ["Normal", "Kelainan Gelombang ST-T", "Hipertrofi Ventrikel Kiri"][x])
+    thalach = st.sidebar.slider("Detak Jantung Maksimum", 60, 220, 150)
+    exang = st.sidebar.selectbox("Angina saat Olahraga", options=[0, 1],
+                                 format_func=lambda x: "Tidak" if x == 0 else "Ya")
+    oldpeak = st.sidebar.slider("ST Depression", 0.0, 6.5, 1.0, 0.1)
+    slope = st.sidebar.selectbox("Slope Segmen ST", options=[0, 1, 2],
+                                 format_func=lambda x: ["Naik", "Datar", "Turun"][x])
+    ca = st.sidebar.selectbox("Jumlah Pembuluh Darah Mayor (0-3)", options=[0, 1, 2, 3, 4])
+    thal = st.sidebar.selectbox("Thalassemia", options=[0, 1, 2, 3],
+                                format_func=lambda x: ["Normal", "Cacat Tetap", "Cacat Reversibel", "Tidak Diketahui"][x])
+    
+    # Create prediction button
+    predict_button = st.sidebar.button("🔍 Prediksi", use_container_width=True)
+    
+    # Main content area
+    col1, col2 = st.columns([2, 1])
+    
+    with col1:
+        st.subheader("📊 Performa Model")
+        
+        # Display accuracy
+        st.metric("Akurasi Model", f"{accuracy:.2%}")
+        
+        # Confusion Matrix
+        cm = confusion_matrix(y_test, y_pred)
+        fig_cm = px.imshow(cm, 
+                           labels=dict(x="Prediksi", y="Aktual", color="Jumlah"),
+                           x=['Tidak Sakit', 'Sakit'],
+                           y=['Tidak Sakit', 'Sakit'],
+                           text_auto=True,
+                           color_continuous_scale='Blues')
+        fig_cm.update_layout(title="Confusion Matrix")
+        st.plotly_chart(fig_cm, use_container_width=True)
+    
+    with col2:
+        st.subheader("📈 Ringkasan Dataset")
+        
+        # Target distribution
+        target_counts = heart_data['target'].value_counts()
+        fig_dist = go.Figure(data=[go.Pie(
+            labels=['Tidak Sakit', 'Sakit'],
+            values=target_counts.values,
+            hole=0.4,
+            marker=dict(colors=['#2ecc71', '#e74c3c'])
+        )])
+        fig_dist.update_layout(title="Distribusi Target")
+        st.plotly_chart(fig_dist, use_container_width=True)
+        
+        st.metric("Total Sampel", len(heart_data))
+        st.metric("Jumlah Fitur", len(heart_data.columns) - 1)
+    
+    # Prediction section
+    if predict_button:
+        st.markdown("---")
+        st.subheader("🎯 Hasil Prediksi")
+        
+        # Prepare input features
+        input_data = pd.DataFrame([[age, sex, cp, trestbps, chol, fbs, restecg, 
+                                    thalach, exang, oldpeak, slope, ca, thal]],
+                                  columns=X.columns)
+        
+        # Transform input
+        input_reduced = pca.transform(input_data)
+        input_scaled = scaler.transform(input_reduced)
+        
+        # Make prediction
+        prediction = model.predict(input_scaled)[0]
+        prediction_proba = model.predict_proba(input_scaled)[0]
+        
+        # Display result
+        col1, col2, col3 = st.columns([1, 2, 1])
+        
+        with col2:
+            if prediction == 1:
+                st.error("⚠️ RISIKO TINGGI: Terdeteksi Penyakit Jantung")
+                st.markdown(f"**Tingkat Kepercayaan:** {prediction_proba[1]:.1%}")
+                st.markdown("""
+                ### 📋 Rekomendasi:
+                - 🏥 **Segera konsultasi ke dokter spesialis jantung**
+                - 💊 Ikuti pengobatan yang diresepkan
+                - 🥗 Terapkan pola hidup sehat
+                - 📊 Monitoring rutin diperlukan
+                - 🚨 Hindari aktivitas berat tanpa pengawasan medis
+                """)
+            else:
+                st.success("✅ RISIKO RENDAH: Tidak Terdeteksi Penyakit Jantung")
+                st.markdown(f"**Tingkat Kepercayaan:** {prediction_proba[0]:.1%}")
+                st.markdown("""
+                ### 📋 Rekomendasi:
+                - 💚 Lanjutkan gaya hidup sehat
+                - 🏃 Olahraga teratur (150 menit/minggu)
+                - 🥗 Konsumsi makanan bergizi seimbang
+                - 🩺 Cek kesehatan rutin setiap 6-12 bulan
+                - 🚭 Hindari merokok dan alkohol berlebihan
+                """)
+        
+        # Probability chart
+        st.markdown("---")
+        st.subheader("📊 Probabilitas Prediksi")
+        
+        fig_proba = go.Figure(data=[
+            go.Bar(x=['Tidak Sakit', 'Sakit'], 
+                   y=prediction_proba,
+                   marker=dict(color=['#2ecc71', '#e74c3c']),
+                   text=[f'{p:.1%}' for p in prediction_proba],
+                   textposition='auto')
+        ])
+        fig_proba.update_layout(
+            yaxis_title="Probabilitas",
+            yaxis=dict(range=[0, 1]),
+            showlegend=False
+        )
+        st.plotly_chart(fig_proba, use_container_width=True)
+        
+        # Display input summary
+        st.markdown("---")
+        st.subheader("📝 Ringkasan Data Input")
+        
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            st.markdown(f"""
+            - **Usia:** {age} tahun
+            - **Jenis Kelamin:** {"Pria" if sex == 1 else "Wanita"}
+            - **Tekanan Darah:** {trestbps} mmHg
+            - **Kolesterol:** {chol} mg/dL
+            - **Gula Darah Puasa:** {"Ya" if fbs == 1 else "Tidak"}
+            """)
+        
+        with col2:
+            st.markdown(f"""
+            - **Detak Jantung Max:** {thalach} bpm
+            - **Angina saat Olahraga:** {"Ya" if exang == 1 else "Tidak"}
+            - **ST Depression:** {oldpeak}
+            - **Jumlah Pembuluh:** {ca}
+            """)
+        
+        with col3:
+            tipe_cp = ["Angina Tipikal", "Angina Atipikal", "Nyeri Non-anginal", "Asimtomatik"][cp]
+            tipe_restecg = ["Normal", "Kelainan ST-T", "Hipertrofi LV"][restecg]
+            tipe_slope = ["Naik", "Datar", "Turun"][slope]
+            tipe_thal = ["Normal", "Cacat Tetap", "Cacat Reversibel", "Tidak Diketahui"][thal]
+            
+            st.markdown(f"""
+            - **Tipe Nyeri Dada:** {tipe_cp}
+            - **Hasil EKG:** {tipe_restecg}
+            - **Slope ST:** {tipe_slope}
+            - **Thalassemia:** {tipe_thal}
+            """)
+
+# Menu: Beranda (Default)
+else:
+    st.title("❤️ Sistem Prediksi Penyakit Jantung")
+    
+    st.markdown("""
+    ## Selamat Datang! 👋
+    
+    Aplikasi ini menggunakan **Machine Learning** untuk memprediksi risiko penyakit jantung berdasarkan parameter medis.
+    """)
+    
+    # Feature highlights
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        st.info("""
+        ### 🎯 Akurat
+        Model dengan akurasi **{:.1%}** menggunakan Decision Tree Classifier
+        """.format(accuracy))
+    
+    with col2:
+        st.success("""
+        ### 🚀 Cepat
+        Hasil prediksi dalam hitungan detik
+        """)
+    
+    with col3:
+        st.warning("""
+        ### 📊 Informatif
+        Visualisasi dan penjelasan lengkap
+        """)
+    
+    st.markdown("---")
+    
+    # Quick start guide
+    st.subheader("🚀 Panduan Cepat")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.markdown("""
+        ### 📖 Untuk Pengguna Baru:
+        
+        1. **Baca Pengenalan** - Pahami cara kerja aplikasi
+        2. **Pelajari Faktor Risiko** - Ketahui parameter yang dianalisis
+        3. **Lakukan Prediksi** - Input data dan lihat hasilnya
+        
+        👉 Mulai dari menu **"📚 Pengenalan Aplikasi"**
+        """)
+    
+    with col2:
+        st.markdown("""
+        ### ⚡ Untuk Pengguna Berpengalaman:
+        
+        1. Pilih menu **"🔬 Prediksi Penyakit"**
+        2. Masukkan 13 parameter medis di sidebar
+        3. Klik tombol **"Prediksi"**
+        4. Lihat hasil dan rekomendasi
+        
+        👉 Langsung ke menu **"🔬 Prediksi Penyakit"**
+        """)
+    
+    st.markdown("---")
+    
+    # Statistics
+    st.subheader("📊 Statistik Model")
+    
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        st.metric("Akurasi", f"{accuracy:.1%}")
+    
+    with col2:
+        st.metric("Total Data", len(heart_data))
+    
+    with col3:
+        st.metric("Jumlah Fitur", 13)
+    
+    with col4:
+        st.metric("Algoritma", "Decision Tree")
+    
+    st.markdown("---")
+    
+    # Important notice
+    st.error("""
+    ### ⚠️ DISCLAIMER PENTING
+    
+    Aplikasi ini **HANYA untuk tujuan edukasi dan referensi**. Hasil prediksi **TIDAK dapat menggantikan** diagnosis medis profesional dari dokter yang berkualifikasi.
+    
+    **Selalu konsultasikan dengan dokter atau tenaga medis profesional** untuk diagnosis, pengobatan, dan saran medis yang akurat.
+    """)
+    
+    st.markdown("---")
+    
+    # Call to action
+    st.success("""
+    ### 💡 Siap Memulai?
+    
+    Pilih salah satu menu di sidebar untuk memulai:
+    - **ℹ️ Tentang** - Informasi aplikasi dan teknologi
+    - **📚 Pengenalan Aplikasi** - Cara kerja dan fitur
+    - **⚠️ Faktor Risiko** - Pelajari faktor risiko penyakit jantung
+    - **🔬 Prediksi Penyakit** - Mulai prediksi sekarang!
+    """)
 
 # Footer
 st.markdown("---")
 st.markdown("""
 <div style='text-align: center'>
-    <p>⚕️ This application is for educational purposes only. Please consult healthcare professionals for medical advice.</p>
+    <p>⚕️ Aplikasi ini untuk tujuan edukasi. Konsultasikan dengan tenaga medis profesional untuk diagnosis yang akurat.</p>
+    <p>© 2024 Sistem Prediksi Penyakit Jantung | Dibuat dengan ❤️ menggunakan Streamlit</p>
 </div>
 """, unsafe_allow_html=True)
