@@ -3,11 +3,14 @@ import pandas as pd
 import numpy as np
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, cross_val_score
 from sklearn.tree import DecisionTreeClassifier
-from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import (accuracy_score, classification_report, confusion_matrix, 
+                           precision_score, recall_score, f1_score)
 import plotly.express as px
 import plotly.graph_objects as go
+from plotly.subplots import make_subplots
 
 # Set page configuration
 st.set_page_config(
@@ -16,7 +19,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# Load and prepare data
+# Load and prepare data with model comparison
 @st.cache_data
 def load_and_prepare_data():
     # Load dataset
@@ -42,19 +45,58 @@ def load_and_prepare_data():
         X_scaled, y, test_size=0.2, random_state=42
     )
     
-    # Train model
-    model = DecisionTreeClassifier(criterion='gini', max_depth=30, random_state=42)
-    model.fit(X_train, y_train)
+    # Train multiple models
+    models = {
+        'Decision Tree': DecisionTreeClassifier(criterion='gini', max_depth=30, random_state=42),
+        'Random Forest': RandomForestClassifier(n_estimators=100, max_depth=30, random_state=42)
+    }
     
-    # Calculate accuracy
-    y_pred = model.predict(X_test)
-    accuracy = accuracy_score(y_test, y_pred)
+    results = {}
+    best_model = None
+    best_accuracy = 0
     
-    return model, scaler, pca, X, y, X_test, y_test, y_pred, accuracy, heart_data
+    for name, model in models.items():
+        # Train model
+        model.fit(X_train, y_train)
+        
+        # Predictions
+        y_pred = model.predict(X_test)
+        
+        # Calculate metrics
+        accuracy = accuracy_score(y_test, y_pred)
+        precision = precision_score(y_test, y_pred)
+        recall = recall_score(y_test, y_pred)
+        f1 = f1_score(y_test, y_pred)
+        
+        # Cross-validation score
+        cv_scores = cross_val_score(model, X_scaled, y, cv=5)
+        cv_mean = cv_scores.mean()
+        cv_std = cv_scores.std()
+        
+        results[name] = {
+            'model': model,
+            'y_pred': y_pred,
+            'accuracy': accuracy,
+            'precision': precision,
+            'recall': recall,
+            'f1_score': f1,
+            'cv_mean': cv_mean,
+            'cv_std': cv_std,
+            'classification_report': classification_report(y_test, y_pred, output_dict=True)
+        }
+        
+        # Track best model
+        if accuracy > best_accuracy:
+            best_accuracy = accuracy
+            best_model = name
+    
+    return (results, scaler, pca, X, y, X_test, y_test, 
+            heart_data, best_model)
 
-# Load data and model
+# Load data and models
 try:
-    model, scaler, pca, X, y, X_test, y_test, y_pred, accuracy, heart_data = load_and_prepare_data()
+    results, scaler, pca, X, y, X_test, y_test, heart_data, best_model_name = load_and_prepare_data()
+    best_model = results[best_model_name]['model']
 except Exception as e:
     st.error(f"Error loading data: {e}")
     st.stop()
@@ -63,17 +105,18 @@ except Exception as e:
 st.sidebar.title("🏥 Menu Navigasi")
 menu = st.sidebar.selectbox(
     "Pilih Menu:",
-    ["🏠 Beranda", "ℹ️ Tentang", "📚 Pengenalan Aplikasi", "⚠️ Faktor Risiko", "🔬 Prediksi Penyakit"]
+    ["🏠 Beranda", "ℹ️ Tentang", "📚 Pengenalan Aplikasi", "⚠️ Faktor Risiko", 
+     "🔬 Prediksi Penyakit", "📊 Perbandingan Model"]
 )
 
 # Menu: Tentang
 if menu == "ℹ️ Tentang":
     st.title("ℹ️ Tentang Aplikasi")
     
-    st.markdown("""
+    st.markdown(f"""
     ## Sistem Prediksi Penyakit Jantung
     
-    ### Versi 1.0
+    ### Versi 2.0 (Improved)
     
     **Dikembangkan oleh:** Tim Machine Learning
     
@@ -87,23 +130,32 @@ if menu == "ℹ️ Tentang":
     ### Tentang Dataset
     Dataset yang digunakan adalah Heart Disease Dataset yang berisi data medis dari pasien dengan berbagai parameter kesehatan jantung.
     
-    **Jumlah Data:** 303 sampel pasien
+    **Jumlah Data:** {len(heart_data)} sampel pasien
     
     **Jumlah Fitur:** 13 parameter medis
     
     **Target:** Prediksi ada/tidaknya penyakit jantung
     
     ### Model Machine Learning
-    - **Algoritma:** Decision Tree Classifier
-    - **Akurasi Model:** {:.2%}
+    - **Model Terbaik:** {best_model_name}
+    - **Akurasi:** {results[best_model_name]['accuracy']:.2%}
+    - **F1-Score:** {results[best_model_name]['f1_score']:.2%}
+    - **Cross-Validation:** {results[best_model_name]['cv_mean']:.2%} (±{results[best_model_name]['cv_std']:.2%})
     - **Preprocessing:** PCA (9 komponen) + Standardisasi
+    
+    ### Peningkatan Versi 2.0
+    - ✅ Perbandingan Decision Tree vs Random Forest
+    - ✅ Cross-Validation untuk evaluasi robust
+    - ✅ Metrics lengkap (Precision, Recall, F1-Score)
+    - ✅ Pemilihan model terbaik otomatis
+    - ✅ Visualisasi perbandingan model
     
     ### Disclaimer
     ⚠️ **Penting:** Aplikasi ini hanya untuk tujuan edukasi dan referensi. Hasil prediksi **TIDAK** dapat menggantikan diagnosis medis profesional. Selalu konsultasikan dengan dokter atau tenaga medis yang berkualifikasi untuk diagnosis dan pengobatan yang akurat.
-    """.format(accuracy))
+    """)
     
     st.markdown("---")
-    st.info("💡 **Tip:** Gunakan menu sidebar untuk navigasi ke berbagai fitur aplikasi.")
+    st.info("💡 **Tip:** Lihat menu 'Perbandingan Model' untuk melihat performa semua model!")
 
 # Menu: Pengenalan Aplikasi
 elif menu == "📚 Pengenalan Aplikasi":
@@ -125,24 +177,33 @@ elif menu == "📚 Pengenalan Aplikasi":
     
     1. **Input Data:** Pengguna memasukkan 13 parameter medis di sidebar
     2. **Preprocessing:** Data dinormalisasi dan ditransformasi menggunakan PCA
-    3. **Prediksi:** Model Decision Tree menganalisis data dan memberikan prediksi
-    4. **Hasil:** Aplikasi menampilkan hasil prediksi beserta tingkat kepercayaan dan rekomendasi
+    3. **Model Selection:** Sistem menggunakan model terbaik (dipilih otomatis)
+    4. **Prediksi:** Model menganalisis data dan memberikan prediksi
+    5. **Hasil:** Aplikasi menampilkan hasil prediksi beserta tingkat kepercayaan dan rekomendasi
     
-    ### 📊 Parameter yang Dianalisis
+    ### 🤖 Model Machine Learning
     
-    Aplikasi menganalisis **13 parameter medis** yang meliputi:
-    - Data demografis (usia, jenis kelamin)
-    - Tekanan darah dan kolesterol
-    - Hasil EKG
-    - Detak jantung maksimum
-    - Dan parameter medis lainnya
+    Aplikasi ini menggunakan **2 algoritma** dan memilih yang terbaik:
     
-    ### ✨ Fitur Utama
+    1. **Decision Tree Classifier**
+       - Model berbasis pohon keputusan
+       - Mudah diinterpretasi
+       - Cepat dalam training dan prediksi
+    
+    2. **Random Forest Classifier** ⭐ (Biasanya lebih akurat)
+       - Ensemble dari banyak decision trees
+       - Lebih robust terhadap overfitting
+       - Akurasi lebih tinggi
+    
+    ### ✨ Fitur Utama Versi 2.0
     
     - 🎨 **Interface User-Friendly:** Mudah digunakan dengan tampilan intuitif
     - 📊 **Visualisasi Interaktif:** Grafik dan chart yang informatif
     - 🔍 **Analisis Real-time:** Hasil prediksi langsung setelah input data
     - 📈 **Dashboard Performa:** Melihat akurasi dan performa model
+    - 🆚 **Perbandingan Model:** Lihat performa Decision Tree vs Random Forest
+    - 📉 **Metrics Lengkap:** Accuracy, Precision, Recall, F1-Score
+    - 🎯 **Cross-Validation:** Evaluasi yang lebih reliable
     - 💾 **Berbasis Web:** Dapat diakses dari browser tanpa instalasi
     
     ### 🚀 Cara Menggunakan
@@ -151,12 +212,13 @@ elif menu == "📚 Pengenalan Aplikasi":
     2. Masukkan semua parameter medis pasien
     3. Klik tombol **"🔍 Prediksi"**
     4. Lihat hasil prediksi dan rekomendasi
+    5. (Opsional) Lihat **"📊 Perbandingan Model"** untuk analisis detail
     
     """)
     
     st.success("✅ Siap menggunakan aplikasi? Pilih menu **'🔬 Prediksi Penyakit'** untuk mulai!")
 
-# Menu: Faktor Risiko
+# Menu: Faktor Risiko (sama seperti sebelumnya, tidak diubah)
 elif menu == "⚠️ Faktor Risiko":
     st.title("⚠️ Faktor Risiko Penyakit Jantung")
     
@@ -232,7 +294,7 @@ elif menu == "⚠️ Faktor Risiko":
     
     with col2:
         st.markdown("""
-        ### 5. 💤 Diabetes
+        ### 5. 💉 Diabetes
         - Merusak pembuluh darah dan saraf
         - Risiko 2-4x lebih tinggi
         - **Kontrol:** Gula darah <126 mg/dL (puasa)
@@ -258,31 +320,6 @@ elif menu == "⚠️ Faktor Risiko":
     
     st.markdown("---")
     
-    # Parameter Medis dalam Aplikasi
-    st.subheader("🔬 Parameter Medis dalam Aplikasi Ini")
-    
-    st.markdown("""
-    Aplikasi ini menganalisis 13 parameter medis berikut:
-    
-    | Parameter | Deskripsi | Nilai Normal |
-    |-----------|-----------|--------------|
-    | **Usia** | Usia pasien dalam tahun | 20-100 tahun |
-    | **Jenis Kelamin** | 0 = Wanita, 1 = Pria | - |
-    | **Tipe Nyeri Dada** | 0-3 (dari ringan hingga parah) | 0 = Aman |
-    | **Tekanan Darah** | Tekanan darah saat istirahat | 90-120 mmHg |
-    | **Kolesterol** | Kolesterol serum | <200 mg/dL |
-    | **Gula Darah Puasa** | >120 mg/dL = 1 | <100 mg/dL |
-    | **EKG Istirahat** | Hasil elektrokardiogram | 0 = Normal |
-    | **Detak Jantung Max** | Detak jantung maksimum | 60-100 bpm |
-    | **Angina saat Olahraga** | Nyeri dada saat aktivitas | 0 = Tidak |
-    | **ST Depression** | Depresi ST saat olahraga | 0-2 |
-    | **Slope** | Kemiringan segmen ST | 0-2 |
-    | **Jumlah Pembuluh** | Pembuluh darah mayor (0-3) | 0 = Aman |
-    | **Thalassemia** | Kelainan darah | 1 = Normal |
-    """)
-    
-    st.markdown("---")
-    
     st.info("""
     ### 💡 Tips Pencegahan Penyakit Jantung
     
@@ -296,11 +333,168 @@ elif menu == "⚠️ Faktor Risiko":
     8. ✅ **Batasi Alkohol:** Maksimal 1-2 gelas/hari
     """)
 
+# Menu: Perbandingan Model (BARU!)
+elif menu == "📊 Perbandingan Model":
+    st.title("📊 Perbandingan Model Machine Learning")
+    
+    st.markdown(f"""
+    Aplikasi ini menggunakan **2 algoritma berbeda** dan secara otomatis memilih model terbaik.
+    
+    **Model Terbaik:** ⭐ **{best_model_name}**
+    """)
+    
+    st.markdown("---")
+    
+    # Comparison Table
+    st.subheader("📋 Tabel Perbandingan Metrics")
+    
+    comparison_data = []
+    for name, result in results.items():
+        comparison_data.append({
+            'Model': name,
+            'Accuracy': f"{result['accuracy']:.4f}",
+            'Precision': f"{result['precision']:.4f}",
+            'Recall': f"{result['recall']:.4f}",
+            'F1-Score': f"{result['f1_score']:.4f}",
+            'CV Mean': f"{result['cv_mean']:.4f}",
+            'CV Std': f"{result['cv_std']:.4f}"
+        })
+    
+    df_comparison = pd.DataFrame(comparison_data)
+    st.dataframe(df_comparison, use_container_width=True)
+    
+    st.markdown("---")
+    
+    # Visualizations
+    st.subheader("📈 Visualisasi Perbandingan")
+    
+    # Metrics comparison chart
+    metrics_names = ['Accuracy', 'Precision', 'Recall', 'F1-Score']
+    
+    fig = go.Figure()
+    
+    for name, result in results.items():
+        fig.add_trace(go.Bar(
+            name=name,
+            x=metrics_names,
+            y=[result['accuracy'], result['precision'], result['recall'], result['f1_score']],
+            text=[f"{result['accuracy']:.2%}", f"{result['precision']:.2%}", 
+                  f"{result['recall']:.2%}", f"{result['f1_score']:.2%}"],
+            textposition='auto',
+        ))
+    
+    fig.update_layout(
+        title="Perbandingan Metrics Model",
+        xaxis_title="Metrics",
+        yaxis_title="Score",
+        yaxis=dict(range=[0, 1]),
+        barmode='group',
+        height=500
+    )
+    
+    st.plotly_chart(fig, use_container_width=True)
+    
+    st.markdown("---")
+    
+    # Confusion Matrices
+    st.subheader("🔍 Confusion Matrix Per Model")
+    
+    col1, col2 = st.columns(2)
+    
+    for idx, (name, result) in enumerate(results.items()):
+        cm = confusion_matrix(y_test, result['y_pred'])
+        
+        fig_cm = px.imshow(cm, 
+                           labels=dict(x="Prediksi", y="Aktual", color="Jumlah"),
+                           x=['Tidak Sakit', 'Sakit'],
+                           y=['Tidak Sakit', 'Sakit'],
+                           text_auto=True,
+                           color_continuous_scale='Blues')
+        fig_cm.update_layout(title=f"Confusion Matrix - {name}")
+        
+        if idx == 0:
+            col1.plotly_chart(fig_cm, use_container_width=True)
+        else:
+            col2.plotly_chart(fig_cm, use_container_width=True)
+    
+    st.markdown("---")
+    
+    # Detailed Classification Report
+    st.subheader("📄 Classification Report Detail")
+    
+    for name, result in results.items():
+        with st.expander(f"📊 {name} - Classification Report"):
+            report_df = pd.DataFrame(result['classification_report']).transpose()
+            st.dataframe(report_df, use_container_width=True)
+    
+    st.markdown("---")
+    
+    # Interpretation
+    st.subheader("💡 Interpretasi Metrics")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.markdown("""
+        ### 📊 Penjelasan Metrics
+        
+        **Accuracy** 🎯
+        - Persentase prediksi yang benar
+        - Formula: (TP + TN) / Total
+        - Semakin tinggi semakin baik
+        
+        **Precision** 🔍
+        - Dari yang diprediksi sakit, berapa yang benar sakit
+        - Formula: TP / (TP + FP)
+        - Penting untuk menghindari false alarm
+        
+        **Recall (Sensitivity)** 🎭
+        - Dari yang benar-benar sakit, berapa yang terdeteksi
+        - Formula: TP / (TP + FN)
+        - Penting untuk deteksi dini
+        
+        **F1-Score** ⚖️
+        - Harmonic mean dari Precision dan Recall
+        - Balance antara keduanya
+        - Baik untuk imbalanced dataset
+        """)
+    
+    with col2:
+        st.markdown("""
+        ### 🏆 Kesimpulan
+        
+        **Model Terbaik:** {model}
+        
+        **Alasan:**
+        - Accuracy: {acc:.2%}
+        - F1-Score: {f1:.2%}
+        - Cross-Validation: {cv:.2%}
+        
+        **Kelebihan Random Forest:**
+        - ✅ Lebih robust terhadap overfitting
+        - ✅ Dapat menangani noise lebih baik
+        - ✅ Ensemble learning = prediksi lebih stabil
+        - ✅ Feature importance analysis
+        
+        **Kelebihan Decision Tree:**
+        - ✅ Lebih cepat training
+        - ✅ Mudah diinterpretasi
+        - ✅ Tidak memerlukan banyak memori
+        - ✅ Visualisasi tree yang jelas
+        """.format(
+            model=best_model_name,
+            acc=results[best_model_name]['accuracy'],
+            f1=results[best_model_name]['f1_score'],
+            cv=results[best_model_name]['cv_mean']
+        ))
+
 # Menu: Prediksi Penyakit
 elif menu == "🔬 Prediksi Penyakit":
     st.title("🔬 Sistem Prediksi Penyakit Jantung")
-    st.markdown("""
+    st.markdown(f"""
     Masukkan parameter medis pasien di sidebar untuk mendapatkan prediksi risiko penyakit jantung.
+    
+    **Model yang digunakan:** {best_model_name} (Akurasi: {results[best_model_name]['accuracy']:.2%})
     """)
     
     # Sidebar for user input
@@ -335,20 +529,24 @@ elif menu == "🔬 Prediksi Penyakit":
     col1, col2 = st.columns([2, 1])
     
     with col1:
-        st.subheader("📊 Performa Model")
+        st.subheader("📊 Performa Model Terpilih")
         
-        # Display accuracy
-        st.metric("Akurasi Model", f"{accuracy:.2%}")
+        # Display metrics
+        col_m1, col_m2, col_m3, col_m4 = st.columns(4)
+        col_m1.metric("Accuracy", f"{results[best_model_name]['accuracy']:.2%}")
+        col_m2.metric("Precision", f"{results[best_model_name]['precision']:.2%}")
+        col_m3.metric("Recall", f"{results[best_model_name]['recall']:.2%}")
+        col_m4.metric("F1-Score", f"{results[best_model_name]['f1_score']:.2%}")
         
         # Confusion Matrix
-        cm = confusion_matrix(y_test, y_pred)
+        cm = confusion_matrix(y_test, results[best_model_name]['y_pred'])
         fig_cm = px.imshow(cm, 
                            labels=dict(x="Prediksi", y="Aktual", color="Jumlah"),
                            x=['Tidak Sakit', 'Sakit'],
                            y=['Tidak Sakit', 'Sakit'],
                            text_auto=True,
                            color_continuous_scale='Blues')
-        fig_cm.update_layout(title="Confusion Matrix")
+        fig_cm.update_layout(title=f"Confusion Matrix - {best_model_name}")
         st.plotly_chart(fig_cm, use_container_width=True)
     
     with col2:
@@ -367,6 +565,7 @@ elif menu == "🔬 Prediksi Penyakit":
         
         st.metric("Total Sampel", len(heart_data))
         st.metric("Jumlah Fitur", len(heart_data.columns) - 1)
+        st.metric("Model Terbaik", best_model_name)
     
     # Prediction section
     if predict_button:
@@ -382,9 +581,9 @@ elif menu == "🔬 Prediksi Penyakit":
         input_reduced = pca.transform(input_data)
         input_scaled = scaler.transform(input_reduced)
         
-        # Make prediction
-        prediction = model.predict(input_scaled)[0]
-        prediction_proba = model.predict_proba(input_scaled)[0]
+        # Make prediction using best model
+        prediction = best_model.predict(input_scaled)[0]
+        prediction_proba = best_model.predict_proba(input_scaled)[0]
         
         # Display result
         col1, col2, col3 = st.columns([1, 2, 1])
@@ -393,6 +592,7 @@ elif menu == "🔬 Prediksi Penyakit":
             if prediction == 1:
                 st.error("⚠️ RISIKO TINGGI: Terdeteksi Penyakit Jantung")
                 st.markdown(f"**Tingkat Kepercayaan:** {prediction_proba[1]:.1%}")
+                st.markdown(f"**Model:** {best_model_name}")
                 st.markdown("""
                 ### 📋 Rekomendasi:
                 - 🏥 **Segera konsultasi ke dokter spesialis jantung**
@@ -404,6 +604,7 @@ elif menu == "🔬 Prediksi Penyakit":
             else:
                 st.success("✅ RISIKO RENDAH: Tidak Terdeteksi Penyakit Jantung")
                 st.markdown(f"**Tingkat Kepercayaan:** {prediction_proba[0]:.1%}")
+                st.markdown(f"**Model:** {best_model_name}")
                 st.markdown("""
                 ### 📋 Rekomendasi:
                 - 💚 Lanjutkan gaya hidup sehat
@@ -471,20 +672,25 @@ elif menu == "🔬 Prediksi Penyakit":
 else:
     st.title("❤️ Sistem Prediksi Penyakit Jantung")
     
-    st.markdown("""
+    st.markdown(f"""
     ## Selamat Datang! 👋
     
     Aplikasi ini menggunakan **Machine Learning** untuk memprediksi risiko penyakit jantung berdasarkan parameter medis.
+    
+    ### 🆕 Versi 2.0 - Improved!
+    - ✅ Perbandingan Decision Tree vs Random Forest
+    - ✅ Model terbaik dipilih otomatis: **{best_model_name}**
+    - ✅ Metrics lengkap dengan Cross-Validation
     """)
     
     # Feature highlights
     col1, col2, col3 = st.columns(3)
     
     with col1:
-        st.info("""
+        st.info(f"""
         ### 🎯 Akurat
-        Model dengan akurasi **{:.1%}** menggunakan Decision Tree Classifier
-        """.format(accuracy))
+        Model {best_model_name} dengan akurasi **{results[best_model_name]['accuracy']:.1%}**
+        """)
     
     with col2:
         st.success("""
@@ -493,9 +699,9 @@ else:
         """)
     
     with col3:
-        st.warning("""
+        st.warning(f"""
         ### 📊 Informatif
-        Visualisasi dan penjelasan lengkap
+        F1-Score: **{results[best_model_name]['f1_score']:.1%}**
         """)
     
     st.markdown("---")
@@ -511,7 +717,8 @@ else:
         
         1. **Baca Pengenalan** - Pahami cara kerja aplikasi
         2. **Pelajari Faktor Risiko** - Ketahui parameter yang dianalisis
-        3. **Lakukan Prediksi** - Input data dan lihat hasilnya
+        3. **Lihat Perbandingan Model** - Pahami model yang digunakan
+        4. **Lakukan Prediksi** - Input data dan lihat hasilnya
         
         👉 Mulai dari menu **"📚 Pengenalan Aplikasi"**
         """)
@@ -533,19 +740,53 @@ else:
     # Statistics
     st.subheader("📊 Statistik Model")
     
-    col1, col2, col3, col4 = st.columns(4)
+    col1, col2, col3, col4, col5 = st.columns(5)
     
     with col1:
-        st.metric("Akurasi", f"{accuracy:.1%}")
+        st.metric("Akurasi", f"{results[best_model_name]['accuracy']:.1%}")
     
     with col2:
-        st.metric("Total Data", len(heart_data))
+        st.metric("F1-Score", f"{results[best_model_name]['f1_score']:.1%}")
     
     with col3:
-        st.metric("Jumlah Fitur", 13)
+        st.metric("Total Data", len(heart_data))
     
     with col4:
-        st.metric("Algoritma", "Decision Tree")
+        st.metric("Jumlah Fitur", 13)
+    
+    with col5:
+        st.metric("Model Terbaik", best_model_name.split()[0])
+    
+    st.markdown("---")
+    
+    # Model comparison preview
+    st.subheader("🆚 Preview Perbandingan Model")
+    
+    metrics_names = ['Accuracy', 'Precision', 'Recall', 'F1-Score']
+    
+    fig = go.Figure()
+    
+    for name, result in results.items():
+        fig.add_trace(go.Bar(
+            name=name,
+            x=metrics_names,
+            y=[result['accuracy'], result['precision'], result['recall'], result['f1_score']],
+            text=[f"{result['accuracy']:.2%}", f"{result['precision']:.2%}", 
+                  f"{result['recall']:.2%}", f"{result['f1_score']:.2%}"],
+            textposition='auto',
+        ))
+    
+    fig.update_layout(
+        xaxis_title="Metrics",
+        yaxis_title="Score",
+        yaxis=dict(range=[0, 1]),
+        barmode='group',
+        height=400
+    )
+    
+    st.plotly_chart(fig, use_container_width=True)
+    
+    st.info("💡 Lihat detail lengkap di menu **'📊 Perbandingan Model'**")
     
     st.markdown("---")
     
@@ -569,13 +810,15 @@ else:
     - **📚 Pengenalan Aplikasi** - Cara kerja dan fitur
     - **⚠️ Faktor Risiko** - Pelajari faktor risiko penyakit jantung
     - **🔬 Prediksi Penyakit** - Mulai prediksi sekarang!
+    - **📊 Perbandingan Model** - Lihat performa semua model
     """)
 
 # Footer
 st.markdown("---")
-st.markdown("""
+st.markdown(f"""
 <div style='text-align: center'>
     <p>⚕️ Aplikasi ini untuk tujuan edukasi. Konsultasikan dengan tenaga medis profesional untuk diagnosis yang akurat.</p>
-    <p>© 2024 Sistem Prediksi Penyakit Jantung | Dibuat dengan ❤️ menggunakan Streamlit</p>
+    <p>© 2024 Sistem Prediksi Penyakit Jantung v2.0 | Dibuat dengan ❤️ menggunakan Streamlit</p>
+    <p><strong>Model Terbaik: {best_model_name}</strong> | Akurasi: {results[best_model_name]['accuracy']:.2%}</p>
 </div>
 """, unsafe_allow_html=True)
