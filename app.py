@@ -733,7 +733,7 @@ st.markdown("---")
 st.markdown(f"""
 <div style='text-align: center'>
     <p>⚕️ Aplikasi ini untuk tujuan edukasi. Konsultasikan dengan tenaga medis profesional untuk diagnosis yang akurat.</p>
-    <p>© 2024 Sistem Prediksi Penyakit Jantung v2.0 | Dibuat dengan ❤️ menggunakan Streamlit</p>
+    <p>© 2024 Sistem Prediksi Penyakit Jantung | Dibuat dengan ❤️ menggunakan Streamlit</p>
     <p><strong>Model: Random Forest Classifier</strong> | Accuracy: {accuracy:.2%} | F1-Score: {f1:.2%}</p>
 </div>
 """, unsafe_allow_html=True)
