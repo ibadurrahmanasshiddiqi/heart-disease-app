@@ -332,7 +332,6 @@ elif menu == "⚠️ Faktor Risiko":
     7. ✅ **Tidur Cukup:** 7-9 jam per malam
     8. ✅ **Batasi Alkohol:** Maksimal 1-2 gelas/hari
     """)
-
 # Menu: Prediksi Penyakit
 elif menu == "🔬 Prediksi Penyakit":
     st.title("🔬 Sistem Prediksi Penyakit Jantung")
@@ -349,9 +348,11 @@ elif menu == "🔬 Prediksi Penyakit":
     # Create input fields
     age = st.sidebar.slider("Usia", 20, 100, 50)
     sex = st.sidebar.selectbox("Jenis Kelamin", options=[0, 1], format_func=lambda x: "Wanita" if x == 0 else "Pria")
+    
     cp = st.sidebar.selectbox("Tipe Nyeri Dada", options=[0, 1, 2, 3], 
                               format_func=lambda x: ["Angina Tipikal", "Angina Atipikal", "Nyeri Non-anginal", "Asimtomatik"][x])
-     # Penjelasan tipe nyeri dada
+    
+    # Penjelasan tipe nyeri dada - PERBAIKAN: indentasi harus sejajar
     chest_pain_info = {
         0: "**Angina Tipikal:** Nyeri dada khas jantung, terasa seperti ditekan/diremas, muncul saat aktivitas, hilang saat istirahat.",
         1: "**Angina Atipikal:** Nyeri dada tidak khas, gejalanya mirip tapi tidak semua kriteria angina tipikal terpenuhi.",
@@ -359,10 +360,13 @@ elif menu == "🔬 Prediksi Penyakit":
         3: "**Asimtomatik:** Tidak ada nyeri dada sama sekali."
     }
     st.sidebar.info(chest_pain_info[cp])
+    
     trestbps = st.sidebar.slider("Tekanan Darah Istirahat (mmHg)", 80, 200, 120)
     chol = st.sidebar.slider("Kolesterol Serum (mg/dL)", 100, 400, 200)
+    
     fbs = st.sidebar.selectbox("Gula Darah Puasa > 120 mg/dl", options=[0, 1], 
                                format_func=lambda x: "Tidak" if x == 0 else "Ya")
+    
     restecg = st.sidebar.selectbox("Hasil EKG Istirahat", options=[0, 1, 2],
                                    format_func=lambda x: ["Normal", "Kelainan Gelombang ST-T", "Hipertrofi Ventrikel Kiri"][x])
     ecg_info = {
@@ -371,9 +375,11 @@ elif menu == "🔬 Prediksi Penyakit":
         2: "**Hipertrofi Ventrikel Kiri:** Penebalan otot jantung kiri, sering akibat tekanan darah tinggi."
     }
     st.sidebar.info(ecg_info[restecg])
+    
     st.sidebar.markdown("---")
     thalach = st.sidebar.slider("Detak Jantung Maksimum", 60, 220, 150)
     st.sidebar.caption("💡 Normal istirahat: 60-100 bpm | Saat olahraga: 120-200 bpm")
+    
     st.sidebar.markdown("---")
     exang = st.sidebar.selectbox("Angina saat Olahraga", options=[0, 1],
                                  format_func=lambda x: "Tidak" if x == 0 else "Ya")
@@ -382,6 +388,7 @@ elif menu == "🔬 Prediksi Penyakit":
     st.sidebar.markdown("---")
     oldpeak = st.sidebar.slider("ST Depression", 0.0, 6.5, 1.0, 0.1)
     st.sidebar.caption("💡 Penurunan segmen ST pada EKG saat olahraga. Semakin tinggi = semakin berisiko")
+    
     st.sidebar.markdown("---")
     slope = st.sidebar.selectbox("Slope Segmen ST", options=[0, 1, 2],
                                  format_func=lambda x: ["Naik", "Datar", "Turun"][x])
@@ -393,13 +400,15 @@ elif menu == "🔬 Prediksi Penyakit":
     st.sidebar.info(slope_info[slope])
     
     st.sidebar.markdown("---")
-    ca = st.sidebar.selectbox("Jumlah Pembuluh Darah Mayor (0-3)", options=[0, 1, 2, 3, 4])
+    ca = st.sidebar.selectbox("Jumlah Pembuluh Darah Mayor (0-4)", options=[0, 1, 2, 3, 4])
     st.sidebar.caption("💡 0 = Tidak ada sumbatan | 1-4 = Jumlah pembuluh yang tersumbat")
     
     st.sidebar.markdown("---")
     thal = st.sidebar.selectbox("Thalassemia", options=[0, 1, 2, 3],
                                 format_func=lambda x: ["Normal", "Cacat Tetap", "Cacat Reversibel", "Tidak Diketahui"][x])
-     thal_info = {
+    
+    # PERBAIKAN: indentasi harus sejajar, bukan menjorok ke dalam
+    thal_info = {
         0: "**Normal:** Tidak ada kelainan darah thalassemia.",
         1: "**Cacat Tetap (Fixed Defect):** Kelainan permanen pada sel darah merah.",
         2: "**Cacat Reversibel (Reversible Defect):** Kelainan sementara yang bisa membaik.",
